@@ -46,13 +46,21 @@ class PB_Single(Disaggregator):
                         the same 1 or more power columns as train_main
         """
 
-        #TODO
-        # 1 - Call preprocessing
-        # 2 - Build model -> Kind of done
-        # 3 - Train the model
+        processed_x, processed_y = self.call_preprocessing(train_mains, train_appliances)
 
+        for appliance in processed_x.keys():
+            x_train, x_test, y_train, y_test = train_test_split(processed_x[appliance],
+                                                                processed_y[appliance],
+                                                                test_size=0.15)
 
-        raise NotImplementedError()
+            network = self.return_network()
+
+            # Validation split set to 0.1765 to have roughly 70/15/15 set sizes
+            network.fit(x_train, y_train,
+                        epochs=self.n_epochs,
+                        batch_size=self.batch_size,
+                        verbose=1,
+                        validation_split=0.1765)
 
 
     def disaggregate_chunk(self, test_mains):
@@ -76,11 +84,44 @@ class PB_Single(Disaggregator):
                     same 1 or more power columns as train_main
         """
 
-        #TODO
-        # 1 - Check for data formats
-        # 2 - Implement for one variable, expand as needed
+        # train_appliances is a tuple:
+        # train_appliances[0][0] is the name of the appliance
+        # train_appliances[0][1] is the first features of the appliance
 
-        return train_mains, train_appliances
+        # Adapted from the machinelearningmastery website:
+        # https://machinelearningmastery.com/time-series-prediction-lstm-recurrent-neural-networks-python-keras/
+        def split_sequence(sequence, n_steps, n_intervals):
+            X = list()
+            for i in np.arange(0, len(sequence), n_intervals):
+                # find the end of this pattern
+                end_ix = i + n_steps
+                # check if we are beyond the sequence
+                if end_ix > len(sequence) - 1:
+                    break
+                # gather input and output parts of the pattern
+                seq_x = sequence[i:end_ix]
+                X.append(seq_x)
+            return np.array(X)
+
+        print('Preprocessing...')
+
+        dict_mains = {}
+        dict_appliances = {}
+
+        for appliance in np.arange(len(train_appliances)):
+            temp_x_list = []
+
+            for feature in train_mains[appliance]['power'].keys():
+                split_x = split_sequence(train_mains[appliance]['power'][feature], self.window_size, 1)
+                temp_x_list.append(split_x)
+
+            temp_x = np.stack(temp_x_list, axis=-1)
+            temp_y = train_appliances[appliance][1][0]['power'].iloc[self.window_size:].values
+
+            dict_mains[train_appliances[appliance][0]] = temp_x
+            dict_appliances[train_appliances[appliance][0]] = temp_y
+
+        return dict_mains, dict_appliances
 
 
     def pb_loss(self):
@@ -98,9 +139,11 @@ class PB_Single(Disaggregator):
     def return_network(self):
         """Returns the network for the PB-NILM single branch version"""
 
-        #TODO
-        # 1 - Check if loss function compiles
-        # 2 - Check if model itself compiles
+        def pb_loss(y_true, y_pred):
+            tau = self.pb_value
+            err = y_true - y_pred
+
+            return K.mean(K.maximum(tau * err, (tau - 1) * err), axis=-1)
 
         inputs = tf.keras.layers.Input(shape=(self.window_size, self.n_features))
 
@@ -117,13 +160,13 @@ class PB_Single(Disaggregator):
         net = tf.keras.layers.Activation('relu')(net)
 
         if self.use_dropout:
-            net = tf.keras.layers.Dropout(self.dropout_rate)(net)
+            net = tf.keras.layers.Dropout(rate=self.dropout_rate)(net)
 
         net = tf.keras.layers.Dense(1, activation='relu', name='Appliance')(net)
 
         model = tf.keras.Model(inputs=inputs, outputs=net)
 
-        model.compile(optimizer='adam', loss=self.pb_loss)
+        model.compile(optimizer='adam', loss=pb_loss)
 
         return model
 

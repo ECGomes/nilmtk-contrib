@@ -7,6 +7,22 @@ import tensorflow as tf
 import tensorflow._api.v1.keras.backend as K
 
 
+# Adapted from the machinelearningmastery website:
+# https://machinelearningmastery.com/time-series-prediction-lstm-recurrent-neural-networks-python-keras/
+def split_sequence(sequence, n_steps, n_intervals):
+    X = list()
+    for i in np.arange(0, len(sequence), n_intervals):
+        # find the end of this pattern
+        end_ix = i + n_steps
+        # check if we are beyond the sequence
+        if end_ix > len(sequence) - 1:
+            break
+        # gather input and output parts of the pattern
+        seq_x = sequence[i:end_ix]
+        X.append(seq_x)
+    return np.array(X)
+
+
 class PB_Single(Disaggregator):
 
     def __init__(self, params):
@@ -16,6 +32,7 @@ class PB_Single(Disaggregator):
 
         # Model Name
         self.MODEL_NAME = 'PB_Single'
+        self.models = {}
 
         # Network inputs
         self.window_size = params.get('window_size', 20)
@@ -33,8 +50,6 @@ class PB_Single(Disaggregator):
         # MaxPooling1D options
         self.use_maxpool = params.get('use_maxpool', False)
 
-
-
     def partial_fit(self, train_mains, train_appliances, **load_kwargs):
         """ Trains the model given a metergroup containing appliance meters
         (supervised) or a site meter (unsupervised).  Will have a
@@ -46,7 +61,7 @@ class PB_Single(Disaggregator):
                         the same 1 or more power columns as train_main
         """
 
-        processed_x, processed_y = self.call_preprocessing(train_mains, train_appliances)
+        processed_x, processed_y = self.preprocessing_xy(train_mains, train_appliances)
 
         for appliance in processed_x.keys():
             x_train, x_test, y_train, y_test = train_test_split(processed_x[appliance],
@@ -62,6 +77,7 @@ class PB_Single(Disaggregator):
                         verbose=1,
                         validation_split=0.1765)
 
+            self.models[appliance] = network
 
     def disaggregate_chunk(self, test_mains):
         """Passes each chunk from mains generator to disaggregate_chunk()
@@ -69,10 +85,47 @@ class PB_Single(Disaggregator):
         ----------
         test_mains : list of pd.DataFrames
         """
-        raise NotImplementedError()
 
+        test_predictions = []
+        preprocessed_x = self.preprocess_x(test_mains)
 
-    def call_preprocessing(self, train_mains, train_appliances):
+        for appliance in np.arange(len(preprocessed_x)):
+            current_model = list(self.models.keys())[appliance]
+            current_appliance = list(preprocessed_x.keys())[appliance]
+
+            temp_model = self.models[current_model]
+
+            ypred = temp_model.predict(preprocessed_x[current_appliance],
+                                       verbose=1,
+                                       batch_size=self.batch_size)
+
+            ypred = pd.DataFrame(ypred, columns=current_model)
+            test_predictions.append(ypred)
+
+            # TODO
+            # Fix issues with API prediction handling
+
+        return test_predictions
+
+    def preprocess_x(self, test_mains):
+
+        dict_mains = {}
+
+        for appliance in np.arange(len(test_mains)):
+            temp_x_list = []
+
+            for feature in test_mains[appliance]['power'].keys():
+                split_x = split_sequence(test_mains[appliance]['power'][feature], self.window_size, 1)
+                temp_x_list.append(split_x)
+
+            temp_x = np.stack(temp_x_list, axis=-1)
+            dict_mains['appliance{:02d}'.format(appliance)] = temp_x
+
+        print(test_mains)
+
+        return dict_mains
+
+    def preprocessing_xy(self, train_mains, train_appliances):
         """Calls the preprocessing functions of this algorithm and returns the
            preprocessed data in the same format
         Parameters
@@ -87,21 +140,6 @@ class PB_Single(Disaggregator):
         # train_appliances is a tuple:
         # train_appliances[0][0] is the name of the appliance
         # train_appliances[0][1] is the first features of the appliance
-
-        # Adapted from the machinelearningmastery website:
-        # https://machinelearningmastery.com/time-series-prediction-lstm-recurrent-neural-networks-python-keras/
-        def split_sequence(sequence, n_steps, n_intervals):
-            X = list()
-            for i in np.arange(0, len(sequence), n_intervals):
-                # find the end of this pattern
-                end_ix = i + n_steps
-                # check if we are beyond the sequence
-                if end_ix > len(sequence) - 1:
-                    break
-                # gather input and output parts of the pattern
-                seq_x = sequence[i:end_ix]
-                X.append(seq_x)
-            return np.array(X)
 
         print('Preprocessing...')
 
@@ -123,7 +161,6 @@ class PB_Single(Disaggregator):
 
         return dict_mains, dict_appliances
 
-
     def pb_loss(self):
         """Quantile loss function for model training"""
 
@@ -134,7 +171,6 @@ class PB_Single(Disaggregator):
             return K.mean(K.maximum(tau * err, (tau - 1) * err), axis=-1)
 
         return custom_loss
-
 
     def return_network(self):
         """Returns the network for the PB-NILM single branch version"""
@@ -170,7 +206,6 @@ class PB_Single(Disaggregator):
 
         return model
 
-
     def save_model(self, folder_name):
         """Passes each chunk from mains generator to disaggregate_chunk()
         Parameters
@@ -178,7 +213,6 @@ class PB_Single(Disaggregator):
         test_mains : list of pd.DataFrames
         """
         raise NotImplementedError()
-
 
     def load_model(self, folder_name):
         """Passes each chunk from mains generator to disaggregate_chunk()

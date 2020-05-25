@@ -7,3 +7,5 @@ from .seq2point import Seq2Point
 from .seq2seq import Seq2Seq
 from .WindowGRU import WindowGRU
 from .rnn import RNN
+
+from .pbsingle import PB_Single

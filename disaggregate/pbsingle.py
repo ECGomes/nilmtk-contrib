@@ -14,12 +14,24 @@ class PB_Single(object):
         Parameters to be specified for the model
         """
 
+        # Model Name
         self.MODEL_NAME = 'PB_Single'
+
+        # Network inputs
         self.window_size = params.get('window_size', 20)
+        self.n_features = params.get('n_features', 1)
+
+        # Training parameters
         self.n_epochs = params.get('n_epochs', 10)
         self.batch_size = params.get('batch_size', 512)
         self.pb_value = params.get('pb_value', 0.5)
-        self.n_features = params.get('n_features', 1)
+
+        # Dropout parameters
+        self.use_dropout = params.get('use_dropout', True)
+        self.dropout_rate = params.get('dropout_rate', 0.2)
+
+        # MaxPooling1D options
+        self.use_maxpool = params.get('use_maxpool', False)
 
 
 
@@ -68,8 +80,6 @@ class PB_Single(object):
         # 1 - Check for data formats
         # 2 - Implement for one variable, expand as needed
 
-        print(train_mains)
-
         return train_mains, train_appliances
 
 
@@ -98,11 +108,17 @@ class PB_Single(object):
         net = tf.keras.layers.Conv1D(128, kernel_size=5)(inputs)
         net = tf.keras.layers.BatchNormalization()(net)
         net = tf.keras.layers.Activation('relu')(net)
-        net = tf.keras.layers.MaxPooling1D()(net)
+
+        if self.use_maxpool:
+            net = tf.keras.layers.MaxPooling1D()(net)
 
         net = tf.keras.layers.GRU(256)(net)
         net = tf.keras.layers.BatchNormalization()(net)
         net = tf.keras.layers.Activation('relu')(net)
+
+        if self.use_dropout:
+            net = tf.keras.layers.Dropout(self.dropout_rate)(net)
+
         net = tf.keras.layers.Dense(1, activation='relu', name='Appliance')(net)
 
         model = tf.keras.Model(inputs=inputs, outputs=net)

@@ -7,7 +7,7 @@ import tensorflow as tf
 import tensorflow._api.v1.keras.backend as K
 
 
-class PB_Single(object):
+class PB_Single(Disaggregator):
 
     def __init__(self, params):
         """

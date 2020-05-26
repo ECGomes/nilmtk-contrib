@@ -107,8 +107,6 @@ class PB_Single(Disaggregator):
             temp_nans = [0 for i in np.arange(self.window_size)]
             temp_nans = np.array(temp_nans)
 
-            print(temp_nans.shape)
-
             temp_series1 = pd.Series(temp_nans)
             temp_series2 = pd.Series(ypred)
 
@@ -133,8 +131,6 @@ class PB_Single(Disaggregator):
 
             temp_x = np.stack(temp_x_list, axis=-1)
             dict_mains['appliance{:02d}'.format(appliance)] = temp_x
-
-        print(test_mains)
 
         return dict_mains
 
@@ -171,6 +167,8 @@ class PB_Single(Disaggregator):
 
             dict_mains[train_appliances[appliance][0]] = temp_x
             dict_appliances[train_appliances[appliance][0]] = temp_y
+
+        print('Finished preprocessing...')
 
         return dict_mains, dict_appliances
 

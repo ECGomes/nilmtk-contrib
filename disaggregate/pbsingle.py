@@ -89,6 +89,8 @@ class PB_Single(Disaggregator):
         test_predictions = []
         preprocessed_x = self.preprocess_x(test_mains)
 
+        disaggregated_dict = {}
+
         for appliance in np.arange(len(preprocessed_x)):
             current_model = list(self.models.keys())[appliance]
             current_appliance = list(preprocessed_x.keys())[appliance]
@@ -99,11 +101,22 @@ class PB_Single(Disaggregator):
                                        verbose=1,
                                        batch_size=self.batch_size)
 
-            ypred = pd.DataFrame(ypred, columns=current_model)
-            test_predictions.append(ypred)
+            ypred = ypred.reshape(-1, 1).ravel()
 
-            # TODO
-            # Fix issues with API prediction handling
+            # Prepend zeros to the predictions
+            temp_nans = [0 for i in np.arange(self.window_size)]
+            temp_nans = np.array(temp_nans)
+
+            print(temp_nans.shape)
+
+            temp_series1 = pd.Series(temp_nans)
+            temp_series2 = pd.Series(ypred)
+
+            temp_series3 = pd.concat([temp_series1, temp_series2])
+
+            disaggregated_dict[current_model] = temp_series3
+
+        test_predictions.append(pd.DataFrame(disaggregated_dict))
 
         return test_predictions
 

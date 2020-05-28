@@ -184,7 +184,10 @@ class PB_Single(Disaggregator):
         return custom_loss
 
     def return_network(self):
-        """Returns the network for the PB-NILM single branch version"""
+        """
+        Returns the network for the PB-NILM single branch version from the paper:
+        https://ieeexplore.ieee.org/document/9025262
+        """
 
         def pb_loss(y_true, y_pred):
             tau = self.pb_value

@@ -64,14 +64,19 @@ class PB_Multi(Disaggregator):
         processed_x, processed_y = self.preprocessing_xy(train_mains, train_appliances)
 
         for appliance in processed_x.keys():
-            x_train, x_test, y_train, y_test = train_test_split(processed_x[appliance],
-                                                                processed_y[appliance],
-                                                                test_size=0.15)
+            x_train, x_test, \
+            y_train1, y_test1, \
+            y_train2, y_test2, \
+            y_train3, y_test3 = train_test_split(processed_x[appliance],
+                                                 processed_y[appliance][0],
+                                                 processed_y[appliance][1],
+                                                 processed_y[appliance][2],
+                                                 test_size=0.15)
 
             network = self.return_network()
 
             # Validation split set to 0.1765 to have roughly 70/15/15 set sizes
-            network.fit(x_train, y_train,
+            network.fit(x_train, [y_train1, y_train2, y_train3],
                         epochs=self.n_epochs,
                         batch_size=self.batch_size,
                         verbose=1,
@@ -163,10 +168,17 @@ class PB_Multi(Disaggregator):
                 temp_x_list.append(split_x)
 
             temp_x = np.stack(temp_x_list, axis=-1)
-            temp_y = train_appliances[appliance][1][0]['power'].iloc[self.window_size:].values
+            temp_y1 = train_appliances[appliance][1][0]['power'].iloc[self.window_size:].values
+            temp_y3 = train_mains[appliance]['power'][feature].iloc[self.window_size:].values
+            temp_y3 = np.reshape(temp_y3, (temp_y3.shape[0], 1))
+
+            print('temp_y1 shape: {}'.format(temp_y1.shape))
+            print('temp_y3 shape: {}'.format(temp_y3.shape))
+
+            temp_y2 = temp_y3 - temp_y1
 
             dict_mains[train_appliances[appliance][0]] = temp_x
-            dict_appliances[train_appliances[appliance][0]] = temp_y
+            dict_appliances[train_appliances[appliance][0]] = [temp_y1, temp_y2, temp_y3]
 
         print('Finished preprocessing...')
 
@@ -230,9 +242,9 @@ class PB_Multi(Disaggregator):
         if self.use_dropout:
             branch2 = tf.keras.layers.Dropout(rate=self.dropout_rate)(branch2)
 
-        branch2 = tf.keras.layers.Dense(1, activation='relu', name='Appliance')(branch2)
+        branch2 = tf.keras.layers.Dense(1, activation='relu', name='Diff')(branch2)
 
-        branch3 = tf.add(branch1, branch2)
+        branch3 = tf.keras.layers.Add(name='Total')([branch1, branch2])
 
         model = tf.keras.Model(inputs=inputs, outputs=[branch1, branch2, branch3])
 

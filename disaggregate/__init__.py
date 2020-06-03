@@ -9,3 +9,4 @@ from .WindowGRU import WindowGRU
 from .rnn import RNN
 
 from .pbsingle import PB_Single
+from .pbmulti import PB_Multi

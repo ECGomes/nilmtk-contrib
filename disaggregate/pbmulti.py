@@ -84,11 +84,12 @@ class PB_Multi(Disaggregator):
 
             self.models[appliance] = network
 
-    def disaggregate_chunk(self, test_mains):
+    def disaggregate_chunk(self, test_mains, appliance_only=True):
         """Passes each chunk from mains generator to disaggregate_chunk()
         Parameters
         ----------
         test_mains : list of pd.DataFrames
+        appliance_only: return only the appliance branch of the network
         """
 
         test_predictions = []
@@ -106,7 +107,10 @@ class PB_Multi(Disaggregator):
                                        verbose=1,
                                        batch_size=self.batch_size)
 
-            ypred = ypred.reshape(-1, 1).ravel()
+            if appliance_only:
+                ypred = ypred[0].reshape(-1, 1).ravel()
+            else:
+                return ypred
 
             # Prepend zeros to the predictions
             temp_nans = [0 for i in np.arange(self.window_size)]
@@ -171,9 +175,6 @@ class PB_Multi(Disaggregator):
             temp_y1 = train_appliances[appliance][1][0]['power'].iloc[self.window_size:].values
             temp_y3 = train_mains[appliance]['power'][feature].iloc[self.window_size:].values
             temp_y3 = np.reshape(temp_y3, (temp_y3.shape[0], 1))
-
-            print('temp_y1 shape: {}'.format(temp_y1.shape))
-            print('temp_y3 shape: {}'.format(temp_y3.shape))
 
             temp_y2 = temp_y3 - temp_y1
 

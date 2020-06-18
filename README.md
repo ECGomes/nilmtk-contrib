@@ -14,6 +14,8 @@ Using the NILMTK-contrib you can use the following algorithms:
  - Seq2Point
  - Seq2Seq
  - WindowGRU
+ - PB-NILM Single Branch
+ - PB-NILM Multi Branch
 
 The above state-of-the-art algorithms, have been added to this repository. 
 

@@ -1,10 +1,8 @@
+import numpy as np
+import pandas as pd
+import tensorflow as tf
 from nilmtk.disaggregate import Disaggregator
 from sklearn.model_selection import train_test_split
-
-import pandas as pd
-import numpy as np
-import tensorflow as tf
-import tensorflow._api.v1.keras.backend as K
 
 
 # Adapted from the machinelearningmastery website:
@@ -192,7 +190,7 @@ class PB_Multi(Disaggregator):
             tau = self.pb_value
             err = y_true - y_pred
 
-            return K.mean(K.maximum(tau * err, (tau - 1) * err), axis=-1)
+            return tf.reduce_mean(tf.maximum(tau * err, (tau - 1) * err), axis=-1)
 
         return custom_loss
 
@@ -206,7 +204,7 @@ class PB_Multi(Disaggregator):
             tau = self.pb_value
             err = y_true - y_pred
 
-            return K.mean(K.maximum(tau * err, (tau - 1) * err), axis=-1)
+            return tf.reduce_mean(tf.maximum(tau * err, (tau - 1) * err), axis=-1)
 
         inputs = tf.keras.layers.Input(shape=(self.window_size, self.n_features))
 

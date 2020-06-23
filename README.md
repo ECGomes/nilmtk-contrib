@@ -2,6 +2,7 @@
 # nilmtk-contrib
 
 # This fork contains an implementation of the PB-NILM paper
+Paper: https://ieeexplore.ieee.org/document/9025262
 
 This repository contains all the state-of-the-art algorithms for the task of energy disaggregation implemented using NILMTK's Rapid Experimentation API. You can find the paper [here](https://nipunbatra.github.io/papers/batra_buildsys_19.pdf). All the notebooks that were used to can be found [here](https://github.com/nilmtk/buildsys2019-paper-notebooks).
 

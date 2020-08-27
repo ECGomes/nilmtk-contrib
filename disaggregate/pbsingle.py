@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-import tensorflow._api.v1.keras.backend as K
+#import tensorflow._api.v1.keras.backend as K
 
 
 # Adapted from the machinelearningmastery website:
@@ -179,7 +179,11 @@ class PB_Single(Disaggregator):
             tau = self.pb_value
             err = y_true - y_pred
 
-            return K.mean(K.maximum(tau * err, (tau - 1) * err), axis=-1)
+            if tf.__version__ < '2.0.0':
+                return tf._api.v1.keras.backend.mean(tf._api.v1.keras.backend.maximum(tau * err, (tau - 1) * err),
+                                                     axis=-1)
+            else:
+                return tf.keras.backend.mean(tf.keras.backend.maximum(tau * err, (tau - 1) * err), axis=-1)
 
         return custom_loss
 
@@ -193,7 +197,11 @@ class PB_Single(Disaggregator):
             tau = self.pb_value
             err = y_true - y_pred
 
-            return K.mean(K.maximum(tau * err, (tau - 1) * err), axis=-1)
+            if tf.__version__ < '2.0.0':
+                return tf._api.v1.keras.backend.mean(tf._api.v1.keras.backend.maximum(tau * err, (tau - 1) * err),
+                                                     axis=-1)
+            else:
+                return tf.keras.backend.mean(tf.keras.backend.maximum(tau * err, (tau - 1) * err), axis=-1)
 
         inputs = tf.keras.layers.Input(shape=(self.window_size, self.n_features))
 

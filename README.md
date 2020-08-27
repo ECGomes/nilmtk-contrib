@@ -1,6 +1,9 @@
 
 # nilmtk-contrib
 
+# This fork contains an implementation of the PB-NILM paper
+Paper: https://ieeexplore.ieee.org/document/9025262
+
 This repository contains all the state-of-the-art algorithms for the task of energy disaggregation implemented using NILMTK's Rapid Experimentation API. You can find the paper [here](https://nipunbatra.github.io/papers/batra_buildsys_19.pdf). All the notebooks that were used to can be found [here](https://github.com/nilmtk/buildsys2019-paper-notebooks).
 
 
@@ -14,6 +17,8 @@ Using the NILMTK-contrib you can use the following algorithms:
  - Seq2Point
  - Seq2Seq
  - WindowGRU
+ - PB-NILM Single Branch
+ - PB-NILM Multi Branch
 
 The above state-of-the-art algorithms, have been added to this repository. 
 
@@ -40,3 +45,12 @@ NILMTK-0.3
 
 **Note: For faster computation of neural-networks, it is suggested that you install keras-gpu, since it can take advantage of GPUs. The algorithms AFHMM, AFHMM_SAC and DSC are CPU intensive, use a system with good CPU for these algorithms.**
 
+# Using PB-NILM
+
+For an example on how to use PB-NILM please check the PB-NILM notebook found on the sample_notebooks folder.
+
+Alternatively you can find it [here](https://github.com/ECGomes/nilmtk-contrib/blob/master/sample_notebooks/PB-NILM.ipynb).
+
+# Related Publications
+For additional information please refer to the publication [PB-NILM: Pinball Guided Deep Non-Intrusive Load Monitoring](https://ieeexplore.ieee.org/document/9025262).
+If you used PB-NILM in your research, please cite this paper.
